@@ -1,87 +1,4 @@
 // =============================================
-// MOCK DATA — mirrors the backend schema
-// =============================================
-
-const MOCK_SPECIALTIES = [
-  { specialtyId: 1, specialtyName: "Cardiology" },
-  { specialtyId: 2, specialtyName: "Dermatology" },
-  { specialtyId: 3, specialtyName: "Pediatrics" },
-  { specialtyId: 4, specialtyName: "Orthopedics" },
-  { specialtyId: 5, specialtyName: "Neurology" },
-];
-
-const MOCK_DOCTORS = [
-  { doctorId: 1, doctorName: "Anjali Sharma", specialtyId: 1, experience: 12, fees: 800, mode: "Online", email: "anjali@clinic.com" },
-  { doctorId: 2, doctorName: "Rajesh Patel", specialtyId: 1, experience: 8, fees: 600, mode: "Offline", email: "rajesh@clinic.com" },
-  { doctorId: 3, doctorName: "Priya Gupta", specialtyId: 2, experience: 10, fees: 700, mode: "Online", email: "priya@clinic.com" },
-  { doctorId: 4, doctorName: "Vikram Singh", specialtyId: 2, experience: 6, fees: 500, mode: "Offline", email: "vikram@clinic.com" },
-  { doctorId: 5, doctorName: "Sneha Reddy", specialtyId: 3, experience: 15, fees: 900, mode: "Online", email: "sneha@clinic.com" },
-  { doctorId: 6, doctorName: "Arjun Nair", specialtyId: 3, experience: 5, fees: 450, mode: "Offline", email: "arjun@clinic.com" },
-  { doctorId: 7, doctorName: "Meena Iyer", specialtyId: 4, experience: 9, fees: 750, mode: "Online", email: "meena@clinic.com" },
-  { doctorId: 8, doctorName: "Kiran Das", specialtyId: 4, experience: 11, fees: 650, mode: "Offline", email: "kiran@clinic.com" },
-  { doctorId: 9, doctorName: "Rohit Kumar", specialtyId: 5, experience: 14, fees: 1000, mode: "Online", email: "rohit@clinic.com" },
-  { doctorId: 10, doctorName: "Divya Menon", specialtyId: 5, experience: 7, fees: 550, mode: "Offline", email: "divya@clinic.com" },
-];
-
-// Generate slots for each doctor for the next 7 days
-function generateMockSlots() {
-  const slots = [];
-  let slotId = 1;
-  const timeSlots = [
-    { start: "09:00", end: "09:30" },
-    { start: "09:30", end: "10:00" },
-    { start: "10:00", end: "10:30" },
-    { start: "10:30", end: "11:00" },
-    { start: "11:00", end: "11:30" },
-    { start: "14:00", end: "14:30" },
-    { start: "14:30", end: "15:00" },
-    { start: "15:00", end: "15:30" },
-  ];
-
-  MOCK_DOCTORS.forEach((doc) => {
-    for (let d = 0; d < 7; d++) {
-      const date = new Date();
-      date.setDate(date.getDate() + d);
-      const dateStr = date.toISOString().split("T")[0];
-
-      timeSlots.forEach((ts) => {
-        slots.push({
-          slotId: slotId++,
-          doctorId: doc.doctorId,
-          slotDate: dateStr,
-          startTime: ts.start,
-          endTime: ts.end,
-          isBooked: Math.random() < 0.25, // ~25% already booked
-        });
-      });
-    }
-  });
-  return slots;
-}
-
-const MOCK_SLOTS = generateMockSlots();
-
-// Appointments store (simulates the Appointments table)
-const MOCK_APPOINTMENTS = [];
-let appointmentIdCounter = 1;
-
-const MOCK_CLINIC_ADDRESSES = {
-  2: "Room 204, City Hospital, MG Road, Mumbai",
-  4: "Ground Floor, Skin Care Center, Park Street, Kolkata",
-  6: "Block B, Children's Wing, Apollo Clinic, Hyderabad",
-  8: "Suite 12, Ortho Center, Connaught Place, Delhi",
-  10: "1st Floor, NeuroLife Clinic, Anna Nagar, Chennai",
-};
-
-// Valid status transitions (Issue #8)
-const VALID_TRANSITIONS = {
-  Confirmed: ["Completed", "Cancelled", "NoShow"],
-  Completed: [],
-  Cancelled: [],
-  NoShow: [],
-};
-
-// =============================================
 // APP STATE
 // =============================================
 
@@ -94,27 +11,6 @@ const state = {
   selectedDoctor: null,
   selectedSlot: null,
 };
-
-// =============================================
-// TOAST NOTIFICATIONS
-// =============================================
-
-let toastTimer = null;
-
-function showToast(message, type) {
-  // type: 'error' | 'success' | 'warning'
-  const toast = document.getElementById("toast");
-  toast.textContent = message;
-  toast.className = "toast toast-" + type;
-
-  // Clear previous timer
-  if (toastTimer) clearTimeout(toastTimer);
-
-  // Auto-hide after 3.5s
-  toastTimer = setTimeout(() => {
-    toast.className = "toast hidden";
-  }, 3500);
-}
 
 // =============================================
 // SCREEN NAVIGATION
@@ -195,7 +91,7 @@ function switchAuthTab(tab) {
 function handleLogin(e) {
   e.preventDefault();
   const email = document.getElementById("login-email").value;
-  state.user = { fullName: email.split("@")[0], email: email, userId: 1 };
+  state.user = { fullName: email.split("@")[0], email: email, userId: 1, role: "Patient" };
   showScreen("screen-mode");
 }
 
@@ -203,7 +99,8 @@ function handleRegister(e) {
   e.preventDefault();
   const username = document.getElementById("reg-username").value;
   const email = document.getElementById("reg-email").value;
-  state.user = { fullName: username, email: email, userId: 1 };
+  const phone = document.getElementById("reg-phone").value;
+  state.user = { fullName: username, email: email, phone: phone, userId: 1, role: "Patient" };
   showScreen("screen-mode");
 }
 
@@ -342,12 +239,9 @@ function loadSlots() {
   }
   noMsg.classList.add("hidden");
 
-  const now = new Date();
-  const isToday = dateVal === today;
-
   filtered.forEach((slot) => {
-    // Issue #7 — Check if slot time has already passed (for today)
-    const slotExpired = isToday && isSlotPast(slot);
+    // Issue #7 — Check if slot has expired (uses FIXED isSlotPast with full date+time)
+    const slotExpired = isSlotPast(slot);
 
     const div = document.createElement("div");
     if (slot.isBooked) {
@@ -387,15 +281,6 @@ function loadSlots() {
   container.appendChild(btnDiv);
 }
 
-// Issue #7 — helper: check if a slot's start time has already passed today
-function isSlotPast(slot) {
-  const now = new Date();
-  const [hours, minutes] = slot.startTime.split(":").map(Number);
-  const slotTime = new Date();
-  slotTime.setHours(hours, minutes, 0, 0);
-  return now > slotTime;
-}
-
 function toggleSlot(slot, el) {
   // Deselect all
   document.querySelectorAll(".slot-item.selected").forEach((s) => s.classList.remove("selected"));
@@ -419,7 +304,7 @@ function proceedToConfirm() {
     return;
   }
 
-  // Issue #7 — Re-check if slot has expired since the page was loaded
+  // Issue #7 — Re-check if slot has expired since the page was loaded (FIXED: uses full date+time)
   if (isSlotPast(freshSlot)) {
     showToast("This slot has expired. Please select a future time slot.", "error");
     loadSlots();
@@ -461,14 +346,13 @@ function confirmAppointment() {
   const slot = MOCK_SLOTS.find((s) => s.slotId === state.selectedSlot.slotId);
   if (!slot || slot.isBooked) {
     showToast("Booking failed: This slot was just booked by another patient.", "error");
-    // Navigate back to slot selection and refresh
     state.screenHistory = state.screenHistory.filter((s) => s !== "screen-confirm");
     loadSlots();
     showScreen("screen-slots");
     return;
   }
 
-  // Issue #7 — Final expiry check
+  // Issue #7 — Final expiry check (FIXED: uses full date+time)
   if (isSlotPast(slot)) {
     showToast("Booking failed: This slot has expired.", "error");
     state.screenHistory = state.screenHistory.filter((s) => s !== "screen-confirm");
@@ -604,7 +488,6 @@ function renderMyAppointments() {
 
     const statusClass = "badge-" + apt.status.toLowerCase();
     const canCancel = apt.status === "Confirmed";
-    // Simulate doctor/admin actions: mark completed / no-show (only for Confirmed)
     const canComplete = apt.status === "Confirmed";
 
     let modeDetail = "";
@@ -701,18 +584,4 @@ function updateAppointmentStatus(appointmentId, newStatus) {
   apt.status = newStatus;
   showToast("Appointment status updated to " + newStatus + ".", "success");
   renderMyAppointments(); // Refresh the list
-}
-
-// =============================================
-// UTILS
-// =============================================
-
-function formatDate(dateStr) {
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("en-IN", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
 }
