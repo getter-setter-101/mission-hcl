@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Doctor Appointment Booking System - Book online or offline appointments with specialists" />
+  <title>Doctor Appointment Booking</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- Minimal Nav -->
+    <nav id="top-nav" class="nav hidden">
+      <span class="nav-title">Book Appointment</span>
+      <div class="nav-actions">
+        <button id="nav-back-btn" class="btn-link" onclick="goBack()">← Back</button>
+        <button id="nav-appointments-btn" class="btn-link" onclick="showMyAppointments()">My Appointments</button>
+        <button id="nav-logout-btn" class="btn-link" onclick="logout()">Logout</button>
+      </div>
+    </nav>
+
+    <!-- SCREEN 0: LOGIN / REGISTER -->
+    <section id="screen-auth" class="screen active">
+      <div class="auth-container">
+        <h1>Doctor Appointment Booking</h1>
+        <div class="auth-tabs">
+          <button id="tab-login" class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
+          <button id="tab-register" class="auth-tab" onclick="switchAuthTab('register')">Register</button>
+        </div>
+
+        <!-- Login Form -->
+        <form id="form-login" class="auth-form" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label for="login-email">Email</label>
+            <input type="email" id="login-email" placeholder="you@example.com" required />
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" placeholder="Enter password" required />
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">Login</button>
+        </form>
+
+        <!-- Register Form -->
+        <form id="form-register" class="auth-form hidden" onsubmit="handleRegister(event)">
+          <div class="form-group">
+            <label for="reg-username">Username</label>
+            <input type="text" id="reg-username" placeholder="Your name" required />
+          </div>
+          <div class="form-group">
+            <label for="reg-email">Email</label>
+            <input type="email" id="reg-email" placeholder="you@example.com" required />
+          </div>
+          <div class="form-group">
+            <label for="reg-password">Password</label>
+            <input type="password" id="reg-password" placeholder="Create password" required />
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">Register</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- SCREEN 1: MODE SELECTION -->
+    <section id="screen-mode" class="screen">
+      <div class="center-container">
+        <h1>Select Appointment Mode</h1>
+        <p class="subtitle">How would you like to see the doctor?</p>
+        <div class="mode-buttons">
+          <button id="btn-online" class="btn btn-mode" onclick="selectMode('Online')">
+            <span class="mode-label">Online</span>
+            <span class="mode-desc">Video consultation</span>
+          </button>
+          <button id="btn-offline" class="btn btn-mode" onclick="selectMode('Offline')">
+            <span class="mode-label">Offline</span>
+            <span class="mode-desc">Visit clinic in person</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCREEN 2: SPECIALTY SELECTION -->
+    <section id="screen-specialty" class="screen">
+      <div class="page-container">
+        <h1>Select Specialty</h1>
+        <p class="subtitle">Mode: <span id="display-mode-specialty"></span></p>
+        <div id="specialty-list" class="specialty-list">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- SCREEN 3: DOCTOR LIST -->
+    <section id="screen-doctors" class="screen">
+      <div class="page-container">
+        <h1>Available Doctors</h1>
+        <p class="subtitle">
+          <span id="display-specialty-doctors"></span> · <span id="display-mode-doctors"></span>
+        </p>
+        <div id="doctor-list" class="doctor-list">
+          <!-- Rendered by JS -->
+        </div>
+        <p id="no-doctors" class="empty-msg hidden">No doctors available for this selection.</p>
+      </div>
+    </section>
+
+    <!-- SCREEN 4: SLOT SELECTION -->
+    <section id="screen-slots" class="screen">
+      <div class="page-container">
+        <h1>Available Slots</h1>
+        <p class="subtitle">
+          Dr. <span id="display-doctor-slots"></span>
+        </p>
+        <div class="date-picker-row">
+          <label for="slot-date">Select Date:</label>
+          <input type="date" id="slot-date" onchange="loadSlots()" />
+        </div>
+        <div id="slot-list" class="slot-list">
+          <!-- Rendered by JS -->
+        </div>
+        <p id="no-slots" class="empty-msg hidden">No slots available for this date.</p>
+      </div>
+    </section>
+
+    <!-- SCREEN 5: APPOINTMENT CONFIRMATION -->
+    <section id="screen-confirm" class="screen">
+      <div class="page-container">
+        <h1>Confirm Appointment</h1>
+        <div class="confirm-card">
+          <div class="confirm-row">
+            <span class="confirm-label">Doctor</span>
+            <span id="confirm-doctor" class="confirm-value"></span>
+          </div>
+          <div class="confirm-row">
+            <span class="confirm-label">Specialty</span>
+            <span id="confirm-specialty" class="confirm-value"></span>
+          </div>
+          <div class="confirm-row">
+            <span class="confirm-label">Mode</span>
+            <span id="confirm-mode" class="confirm-value"></span>
+          </div>
+          <div class="confirm-row">
+            <span class="confirm-label">Date</span>
+            <span id="confirm-date" class="confirm-value"></span>
+          </div>
+          <div class="confirm-row">
+            <span class="confirm-label">Time</span>
+            <span id="confirm-time" class="confirm-value"></span>
+          </div>
+          <div class="confirm-row">
+            <span class="confirm-label">Fees</span>
+            <span id="confirm-fees" class="confirm-value"></span>
+          </div>
+        </div>
+        <button id="btn-confirm" class="btn btn-primary btn-full" onclick="confirmAppointment()">Confirm Appointment</button>
+      </div>
+    </section>
+
+    <!-- SCREEN 6: SUCCESS -->
+    <section id="screen-success" class="screen">
+      <div class="center-container">
+        <div class="success-icon">✓</div>
+        <h1>Appointment Confirmed!</h1>
+        <div class="confirm-card">
+          <div class="confirm-row">
+            <span class="confirm-label">Doctor</span>
+            <span id="success-doctor" class="confirm-value"></span>
+          </div>
+          <div class="confirm-row">
+            <span class="confirm-label">Date & Time</span>
+            <span id="success-datetime" class="confirm-value"></span>
+          </div>
+          <div class="confirm-row">
+            <span class="confirm-label">Mode</span>
+            <span id="success-mode" class="confirm-value"></span>
+          </div>
+          <div id="success-online-info" class="confirm-row hidden">
+            <span class="confirm-label">Meeting Link</span>
+            <a id="success-link" class="confirm-value link" href="#" target="_blank"></a>
+          </div>
+          <div id="success-offline-info" class="confirm-row hidden">
+            <span class="confirm-label">Clinic Address</span>
+            <span id="success-address" class="confirm-value"></span>
+          </div>
+          <div class="confirm-row">
+            <span class="confirm-label">Status</span>
+            <span class="confirm-value status-confirmed">Confirmed</span>
+          </div>
+        </div>
+        <div class="success-actions">
+          <button class="btn btn-primary btn-full" onclick="bookAnother()">Book Another Appointment</button>
+          <button class="btn btn-outline btn-full" onclick="showMyAppointments()">View My Appointments</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCREEN 7: MY APPOINTMENTS -->
+    <section id="screen-my-appointments" class="screen">
+      <div class="page-container">
+        <h1>My Appointments</h1>
+        <p class="subtitle">Your booking history</p>
+        <div id="my-appointments-list" class="appointments-list">
+          <!-- Rendered by JS -->
+        </div>
+        <p id="no-appointments" class="empty-msg hidden">You have no appointments yet.</p>
+        <button class="btn btn-primary btn-full" style="margin-top: 24px;" onclick="bookAnother()">Book New Appointment</button>
+      </div>
+    </section>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
